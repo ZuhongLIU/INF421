@@ -19,7 +19,8 @@ public class Utils {
 	}
 	
    void testReadFile2(String fileName) throws IOException {
- 
+   // Useless Function， just for I/O test 
+	   
    // 读取文件内容到Stream流中，按行读取
    //List<String> lines = Files.readAllLines(Paths.get(fileName));
    //System.out.println(lines.findFirst().get());

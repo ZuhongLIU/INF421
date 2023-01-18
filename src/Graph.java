@@ -7,6 +7,12 @@ import java.util.stream.Stream;
 
 
 public class Graph {
+	/*num_V:number of vertices
+	 *num_E:number of edges =num_V-1 because of the property of tree
+	 *num_leaf:number of leaves
+	 *label_size:the size of the labelling alphabet
+	 *vertices:Adjacency List of the graph.The first node of the i th Linkedlist is the i th vertices 
+	 */
 	int num_V;
 	int num_E;
 	int num_leaf;
@@ -14,6 +20,10 @@ public class Graph {
 	NodeList[] vertices;
 	
 	Graph(String fileName,int label_size) throws IOException {
+		/*
+		 * Load the document to form the graph in adjlist
+		 */
+		
 		this.label_size=label_size;
 		
 		List<String> lines = Files.readAllLines(Paths.get(fileName));
@@ -51,7 +61,8 @@ public class Graph {
 				leaf.labels[line[1].charAt(j)-65]=1;
 			}
 			for (int k=0;k<this.label_size;k++) {
-				leaf.is_label[k]=true;
+				leaf.is_visited[k]=true;
+				leaf.is_labeled[k]=true;
 				if (leaf.labels[k]==1){
 					leaf.weight[2*k]=1;
 					leaf.weight[2*k+1]=0;
@@ -66,12 +77,16 @@ public class Graph {
 		}
 	}
 	void update_weight(int idx,int label_pos) {
+		/*
+		 * The process of dynamic programming. Utilizes DFS for the tree and updata weight w[0]
+		 * and w[1] for each node from bottom to root
+		 */
 		int w_0=0;
 		int w_1=0;
 		LinkedList<Node> curr_list=this.vertices[idx].list;
-		curr_list.get(0).is_label[label_pos]=true;
+		curr_list.get(0).is_visited[label_pos]=true;
 		for (Node n:curr_list) {
-			if(!n.is_label[label_pos]) {
+			if(!n.is_visited[label_pos]) {
 				this.update_weight(n.idx,label_pos);
 			}
 			w_0+=Math.min(n.weight[2*label_pos], 1+n.weight[2*label_pos+1]);
@@ -82,21 +97,55 @@ public class Graph {
 		curr_node.weight[2*label_pos+1]=w_1;
 	}
 	
+	void label(int idx,int label_pos) {
+		/*
+		 * Once the label of the root is determined, revisiting each vertice from top to bottom
+		 * to label each vertices 
+		 */
+		LinkedList<Node> curr_list=this.vertices[idx].list;
+		int l=curr_list.get(0).labels[label_pos];
+		
+		for (Node n:curr_list) {
+			if(!n.is_labeled[label_pos]) {	
+				n.is_labeled[label_pos]=true;
+				n.labels[label_pos]=n.weight[2*label_pos+l]<(1+n.weight[2*label_pos+1-l]) ?l:1-l;
+				this.label(n.idx,label_pos);
+			    }
+			}
+	}
+	
 	int solve_single_bilabel(int label_pos) {
+		/*
+		 * The solver for a tree containing the label with only one character
+		 */
 		int root_indice=0;
 		Node root=this.vertices[0].list.get(0);
 		for(int i=0;i<this.num_V;i++) {
-			if(!this.vertices[i].list.get(0).is_label[label_pos]) {
+			if(!this.vertices[i].list.get(0).is_labeled[label_pos]) {
 				root_indice=i;
 				root=this.vertices[i].list.get(0);
 				break;
 			}
 		}
 		update_weight(root_indice,label_pos);
-		return Math.min(root.weight[2*label_pos],root.weight[2*label_pos+1]);
+		root.is_labeled[label_pos]=true;
+		if (root.weight[2*label_pos]<root.weight[2*label_pos+1]) {
+			root.labels[label_pos]=0;
+			label(root_indice,label_pos);
+			return root.weight[2*label_pos];
+		}
+		else {
+			root.labels[label_pos]=1;
+			label(root_indice,label_pos);
+			return root.weight[2*label_pos+1];
+		}
+		//return Math.min(root.weight[2*label_pos],root.weight[2*label_pos+1]);
 	}
 	
 	void solve() {
+		/*
+		 * The overall solver for each labelling tree
+		 */
 		int sum=0;
 		for(int i=0;i<this.label_size;i++) {
 			sum+=solve_single_bilabel(i);
@@ -105,9 +154,12 @@ public class Graph {
 	}
 	
 	void print_G() {
+		/*
+		 * Output format of G
+		 */
 		System.out.printf("AdjList:\n");
 		for(int i=0;i<this.num_V;i++) {
-			//System.out.print(this.vertices[i].list.get(0).is_label);
+			//System.out.print(this.vertices[i].list.get(0).is_visited);
 			System.out.print(Utils.Onehot2String(this.vertices[i].list.get(0).labels));
 			for(Node n:this.vertices[i].list) {
 				System.out.print(n.idx+1);
@@ -123,10 +175,11 @@ public class Graph {
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub
 		int label_size=26;
-		String filename="C:\\Users\\lc010\\eclipse-workspace\\INF421\\input\\test.txt";
+		String filename="C:\\Users\\lc010\\eclipse-workspace\\INF421\\input\\0.in";
 		Graph G=new Graph(filename,label_size);
 		G.print_G();
 		G.solve();
+		G.print_G();
 
 	}
 
@@ -136,14 +189,16 @@ public class Graph {
 class Node {
 	int idx;
 	int[] labels;
-	boolean[] is_label;
-	int[] weight;
+	boolean[] is_visited; // For DFS in updating weight
+	boolean[] is_labeled; // For DFS in labelling process
+	int[] weight; // size:label_size*2 weight[2*label_pos]=w0(label_pos) weight[2*label_pos+1]=w1(label_pos)
 	
 	Node(int idx,int label_size){
 		this.idx=idx;
 		this.labels=new int[label_size];
 		this.weight=new int[label_size*2];
-		this.is_label=new boolean[label_size];
+		this.is_visited=new boolean[label_size];
+		this.is_labeled=new boolean[label_size];
 	}
 }
 
