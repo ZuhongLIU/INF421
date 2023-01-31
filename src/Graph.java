@@ -177,9 +177,9 @@ public class Graph {
 		int label_size=26;
 		String filename="C:\\Users\\lc010\\eclipse-workspace\\INF421\\input\\0.in";
 		Graph G=new Graph(filename,label_size);
-		G.print_G();
+		//G.print_G();
 		G.solve();
-		G.print_G();
+		//G.print_G();
 
 	}
 
