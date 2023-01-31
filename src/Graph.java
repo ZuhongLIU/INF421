@@ -57,7 +57,7 @@ public class Graph {
 				if (line[1].charAt(j)=='$'){
 					break;
 				}
-				System.out.println(line[1].charAt(j));
+				//System.out.println(line[1].charAt(j));
 				leaf.labels[line[1].charAt(j)-65]=1;
 			}
 			for (int k=0;k<this.label_size;k++) {
